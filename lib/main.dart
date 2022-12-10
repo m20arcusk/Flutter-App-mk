@@ -1,6 +1,171 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'dart:async';
+import 'dart:convert';
 
+Future<BusInfo> fetchBusInfo() async {
+  final response = await http.get(
+    Uri.parse(
+        'https://api.translink.ca/rttiapi/v1/stops?apikey=rqFAxDROV4jA0mvKlaaj&lat=49.340050&long=-123.032580'),
+    headers: {
+      //HttpHeaders.authorizationHeader: 'rqFAxDROV4jA0mvKlaaj',
+      'Content-Type': 'application/JSON'
+    },
+  );
+
+  if (response.statusCode == 200) {
+    // If the server did return a 200 OK response,
+    // then parse the JSON.
+    print(jsonDecode(response.body));
+    final jsonresponse = BusInfo.fromJson(jsonDecode(response.body)) as Map;
+
+    return BusInfo.fromJson(jsonresponse[0]);
+    //final responseJson = jsonDecode(response.body);
+
+    //return Album.fromJson(responseJson);
+  } else {
+    // If the server did not return a 200 OK response,
+    // then throw an exception.
+    throw Exception('Failed to load album');
+  }
+}
+
+/*
+List<BusInfo> postFromJson(String str) =>
+    List<BusInfo>.from(json.decode(str).map((x) => BusInfo.fromJson(x)));
+
+String postToJson(List<BusInfo> data) =>
+    json.encode(List<dynamic>.from(data.map((x) => x.toJson())));
+*/
+class BusInfo {
+  final int stopNo;
+  final String name;
+  final String bayNo;
+  //final City? city;
+  final String city;
+  final String onStreet;
+  final String atStreet;
+  final double latitude;
+  final double longitude;
+  final int wheelchairAccess;
+  final int distance;
+  final String routes;
+
+  const BusInfo({
+    required this.stopNo,
+    required this.name,
+    required this.bayNo,
+    required this.city,
+    required this.onStreet,
+    required this.atStreet,
+    required this.latitude,
+    required this.longitude,
+    required this.wheelchairAccess,
+    required this.distance,
+    required this.routes,
+  });
+
+  factory BusInfo.fromJson(Map<String, dynamic> json) => BusInfo(
+        stopNo: json["StopNo"],
+        name: json["Name"],
+        bayNo: json["BayNo"],
+        //city: cityValues.map[json["City"]],\
+        city: json["City"],
+        onStreet: json["OnStreet"],
+        atStreet: json["AtStreet"],
+        latitude: json["Latitude"].toDouble(),
+        longitude: json["Longitude"].toDouble(),
+        wheelchairAccess: json["WheelchairAccess"],
+        distance: json["Distance"],
+        routes: json["Routes"],
+      );
+
+  Map<String, dynamic> toJson() => {
+        "StopNo": stopNo,
+        "Name": name,
+        "BayNo": bayNo,
+        //"City": cityValues.reverse![city],
+        "City": city,
+        "OnStreet": onStreet,
+        "AtStreet": atStreet,
+        "Latitude": latitude,
+        "Longitude": longitude,
+        "WheelchairAccess": wheelchairAccess,
+        "Distance": distance,
+        "Routes": routes,
+      };
+}
+
+/*
+// ignore: constant_identifier_names
+enum City { NORTH_VANCOUVER_DISTRICT }
+
+final cityValues =
+    EnumValues({"NORTH VANCOUVER - DISTRICT": City.NORTH_VANCOUVER_DISTRICT});
+class EnumValues<T> {
+  Map<String, T> map;
+  Map<T, String>? reverseMap;
+
+  EnumValues(this.map);
+
+  Map<T, String>? get reverse {
+    reverseMap ??= map.map((k, v) => MapEntry(v, k));
+    return reverseMap;
+  }
+}
+*/
+void main() => runApp(const MyApp());
+
+class MyApp extends StatefulWidget {
+  const MyApp({super.key});
+
+  @override
+  State<MyApp> createState() => _MyAppState();
+}
+
+class _MyAppState extends State<MyApp> {
+  late Future<BusInfo> futureBusInfo;
+
+  @override
+  void initState() {
+    super.initState();
+    futureBusInfo = fetchBusInfo();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      title: 'Fetch Data Example',
+      theme: ThemeData(
+        primarySwatch: Colors.blue,
+      ),
+      home: Scaffold(
+        appBar: AppBar(
+          title: const Text('Fetch Data Example'),
+        ),
+        body: Center(
+          child: FutureBuilder<BusInfo>(
+            future: futureBusInfo,
+            builder: (context, snapshot) {
+              if (snapshot.hasData) {
+                return Text(snapshot.data!.routes);
+              } else if (snapshot.hasError) {
+                return Text('${snapshot.error}');
+              }
+
+              // By default, show a loading spinner.
+              return const CircularProgressIndicator();
+            },
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/*
 Future<String> createBusOrder() async {
   var busName = await fetchBusName();
   return 'Your order is: $busName';
@@ -137,6 +302,7 @@ class _MyHomePageState extends State<MyHomePage> {
     );
   }
 }
+*/
 /*
   @override
   Widget build(BuildContext context) {
