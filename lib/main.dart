@@ -9,10 +9,18 @@ void main() {
   runApp(MyApp());
 }
 
+/*
+Future<BusInfo> OneBusInfo(BusInfo lobi) async {
+  List<String> stopNos = [];
+  for (int i = 0; i < 78; i++) {
+    stopNos.add(snapshot.data!.stopNo.toString());
+  }
+}
+*/
 Future<List<BusInfo>> fetchBusInfo() async {
   final response = await http.get(
     Uri.parse(
-        'https://api.translink.ca/rttiapi/v1/stops?apikey=rqFAxDROV4jA0mvKlaaj&lat=49.268425&long=-123.248165&radius=1000'),
+        'https://api.translink.ca/rttiapi/v1/stops?apikey=rqFAxDROV4jA0mvKlaaj&lat=49.268425&long=-123.248165&radius=200'),
     headers: {
       //HttpHeaders.authorizationHeader: 'rqFAxDROV4jA0mvKlaaj',
       'Content-Type': 'application/JSON'
@@ -23,9 +31,11 @@ Future<List<BusInfo>> fetchBusInfo() async {
     // If the server did return a 200 OK response,
     // then parse the JSON.
     List<BusInfo> lobi = [];
-    for (int i = 0; i < 78; i++) {
+    List<dynamic> json = jsonDecode(response.body);
+    for (int i = 0; i < json.length; i++) {
       lobi.add(BusInfo.fromJson(jsonDecode(response.body)[i]));
     }
+
     //final busInforesponse = BusInfo.fromJson(jsonDecode(response.body)[0]);
     //print(jsonDecode(response.body)[0]);
     return lobi;
@@ -38,6 +48,50 @@ Future<List<BusInfo>> fetchBusInfo() async {
     throw Exception('Failed to load album');
   }
 }
+//---------------------------------------------
+/*
+Future<List<BusInfo>> fetchBusStopInfo(String busStop) async {
+  final response = await http.get(
+    Uri.parse(
+        'https://api.translink.ca/rttiapi/v1/stops/$busStop/estimates?apikey=rqFAxDROV4jA0mvKlaaj&count=3&timeframe=30'),
+    headers: {
+      //HttpHeaders.authorizationHeader: 'rqFAxDROV4jA0mvKlaaj',
+      'Content-Type': 'application/JSON'
+    },
+  );
+
+  if (response.statusCode == 200) {
+    // If the server did return a 200 OK response,
+    // then parse the JSON.
+    List<BusInfo> lobi = [];
+    List<dynamic> json = jsonDecode(response.body);
+    for (int i = 0; i < json.length; i++) {
+      lobi.add(BusInfo.fromJson(jsonDecode(response.body)[i]));
+    }
+
+    //final busInforesponse = BusInfo.fromJson(jsonDecode(response.body)[0]);
+    //print(jsonDecode(response.body)[0]);
+    return lobi;
+    //final responseJson = jsonDecode(response.body);
+
+    //return Album.fromJson(responseJson);
+  } else {
+    // If the server did not return a 200 OK response,
+    // then throw an exception.
+    throw Exception('Failed to load album');
+  }
+}
+
+List<String> findNextBusses(List<String> lobs) {
+  for (int i = 0; i < lobs.length; i++) {
+    fetchBusStopInfo(lobs[i]);
+  }
+  return lobs;
+}
+*/
+//------------------------------------------------
+
+
 /*
 ///
 /// When the location services are not enabled or permissions
@@ -126,20 +180,18 @@ class _MyAppState extends State<MyApp> {
             future: futureBusInfo,
             builder: (context, snapshot) {
               if (snapshot.hasData) {
-                // ignore: prefer_interpolation_to_compose_strings
                 List<String> stopNos = [];
-                for (int i = 0; i < 78; i++) {
-                  stopNos.add(snapshot.data!.stopNo.toString());
+                for (int i = 0; i < snapshot.data!.length; i++) {
+                  stopNos.add(snapshot.data![i].stopNo.toString());
                 }
-                /*
-                String info = snapshot.data!.routes +
-                    ' ' +
-                    snapshot.data!.stopNo.toString() +
-                    ' ' +
-                    snapshot.data!.onStreet +
-                    ' ' +
-                    snapshot.data!.atStreet;
-                    */
+                String info = "";
+                List<String> infoList = [];
+                for (int i = 0; i < snapshot.data!.length; i++) {
+                  info += " ${stopNos[i]}";
+                  infoList.add(stopNos[i]);
+                }
+                findNextBusses(infoList);
+                print(info);
                 return Text(info);
               } else if (snapshot.hasError) {
                 return Text('${snapshot.error}');
