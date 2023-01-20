@@ -49,8 +49,8 @@ Future<List<BusInfo>> fetchBusInfo() async {
   }
 }
 //---------------------------------------------
-/*
-Future<List<BusInfo>> fetchBusStopInfo(String busStop) async {
+
+Future<List<NextBus>> fetchBusStopInfo(String busStop) async {
   final response = await http.get(
     Uri.parse(
         'https://api.translink.ca/rttiapi/v1/stops/$busStop/estimates?apikey=rqFAxDROV4jA0mvKlaaj&count=3&timeframe=30'),
@@ -63,15 +63,15 @@ Future<List<BusInfo>> fetchBusStopInfo(String busStop) async {
   if (response.statusCode == 200) {
     // If the server did return a 200 OK response,
     // then parse the JSON.
-    List<BusInfo> lobi = [];
+    List<NextBus> lobs = [];
     List<dynamic> json = jsonDecode(response.body);
     for (int i = 0; i < json.length; i++) {
-      lobi.add(BusInfo.fromJson(jsonDecode(response.body)[i]));
+      lobs.add(NextBus.fromJson(jsonDecode(response.body)[i]));
     }
 
     //final busInforesponse = BusInfo.fromJson(jsonDecode(response.body)[0]);
     //print(jsonDecode(response.body)[0]);
-    return lobi;
+    return lobs;
     //final responseJson = jsonDecode(response.body);
 
     //return Album.fromJson(responseJson);
@@ -82,15 +82,15 @@ Future<List<BusInfo>> fetchBusStopInfo(String busStop) async {
   }
 }
 
-List<String> findNextBusses(List<String> lobs) {
+List<Future<List<NextBus>>> findNextBusses(List<String> lobs) {
+  List<Future<List<NextBus>>> lolobs = [];
   for (int i = 0; i < lobs.length; i++) {
-    fetchBusStopInfo(lobs[i]);
+    lolobs.add(fetchBusStopInfo(lobs[i]));
   }
-  return lobs;
+  return lolobs;
 }
-*/
-//------------------------------------------------
 
+//------------------------------------------------
 
 /*
 ///
@@ -155,6 +155,7 @@ class MyApp extends StatefulWidget {
 
 class _MyAppState extends State<MyApp> {
   late Future<List<BusInfo>> futureBusInfo;
+  //late Future<List<BusInfo>> futureBusStopInfo;
   //late Future<Position> position;
 
   @override
@@ -190,8 +191,8 @@ class _MyAppState extends State<MyApp> {
                   info += " ${stopNos[i]}";
                   infoList.add(stopNos[i]);
                 }
-                findNextBusses(infoList);
-                print(info);
+                List<Future<List<NextBus>>> lolobs = findNextBusses(infoList);
+                print(lolobs);
                 return Text(info);
               } else if (snapshot.hasError) {
                 return Text('${snapshot.error}');
@@ -265,3 +266,119 @@ class BusInfo {
         "Routes": routes,
       };
 }
+
+class NextBus {
+    NextBus({
+        required this.routeNo,
+        required this.routeName,
+        required this.direction,
+        required this.routeMap,
+        required this.schedules,
+    });
+
+    String routeNo;
+    String routeName;
+    String direction;
+    RouteMap routeMap;
+    Schedules schedules;
+
+    factory NextBus.fromJson(Map<String, dynamic> json) => NextBus(
+        routeNo: json["RouteNo"],
+        routeName: json["RouteName"],
+        direction: json["Direction"],
+        routeMap: RouteMap.fromJson(json["RouteMap"]),
+        schedules: Schedules.fromJson(json["Schedules"]),
+    );
+
+    Map<String, dynamic> toJson() => {
+        "RouteNo": routeNo,
+        "RouteName": routeName,
+        "Direction": direction,
+        "RouteMap": routeMap.toJson(),
+        "Schedules": schedules.toJson(),
+    };
+}
+
+class RouteMap {
+    RouteMap({
+        required this.href,
+    });
+
+    String href;
+
+    factory RouteMap.fromJson(Map<String, dynamic> json) => RouteMap(
+        href: json["Href"],
+    );
+
+    Map<String, dynamic> toJson() => {
+        "Href": href,
+    };
+}
+
+class Schedules {
+    Schedules({
+        required this.schedule,
+    });
+
+    List<Schedule> schedule;
+
+    factory Schedules.fromJson(Map<String, dynamic> json) => Schedules(
+        schedule: List<Schedule>.from(json["Schedule"].map((x) => Schedule.fromJson(x))),
+    );
+
+    Map<String, dynamic> toJson() => {
+        "Schedule": List<dynamic>.from(schedule.map((x) => x.toJson())),
+    };
+}
+
+class Schedule {
+    Schedule({
+        required this.pattern,
+        required this.destination,
+        required this.expectedLeaveTime,
+        required this.expectedCountdown,
+        required this.scheduleStatus,
+        required this.cancelledTrip,
+        required this.cancelledStop,
+        required this.addedTrip,
+        required this.addedStop,
+        required this.lastUpdate,
+    });
+
+    String pattern;
+    String destination;
+    String expectedLeaveTime;
+    int expectedCountdown;
+    String scheduleStatus;
+    bool cancelledTrip;
+    bool cancelledStop;
+    bool addedTrip;
+    bool addedStop;
+    String lastUpdate;
+
+    factory Schedule.fromJson(Map<String, dynamic> json) => Schedule(
+        pattern: json["Pattern"],
+        destination: json["Destination"],
+        expectedLeaveTime: json["ExpectedLeaveTime"],
+        expectedCountdown: json["ExpectedCountdown"],
+        scheduleStatus: json["ScheduleStatus"],
+        cancelledTrip: json["CancelledTrip"],
+        cancelledStop: json["CancelledStop"],
+        addedTrip: json["AddedTrip"],
+        addedStop: json["AddedStop"],
+        lastUpdate: json["LastUpdate"],
+    );
+
+    Map<String, dynamic> toJson() => {
+        "Pattern": pattern,
+        "Destination": destination,
+        "ExpectedLeaveTime": expectedLeaveTime,
+        "ExpectedCountdown": expectedCountdown,
+        "ScheduleStatus": scheduleStatus,
+        "CancelledTrip": cancelledTrip,
+        "CancelledStop": cancelledStop,
+        "AddedTrip": addedTrip,
+        "AddedStop": addedStop,
+        "LastUpdate": lastUpdate,
+    };
+} 
